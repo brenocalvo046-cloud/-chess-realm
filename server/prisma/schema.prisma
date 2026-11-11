@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String?       @unique
+  username     String        @unique
+  passwordHash String?
+  role         String        @default("USER")
+  guest        Boolean       @default(false)
+  suspended    Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  settings     UserSettings?
+  matchesWhite Match[]       @relation("WhitePlayer")
+  matchesBlack Match[]       @relation("BlackPlayer")
+  customPieces CustomPiece[]
+  customBoards CustomBoard[]
+}
+
+model UserSettings {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  data      Json     @default("{}")
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Match {
+  id          String   @id @default(cuid())
+  whiteId     String?
+  blackId     String?
+  whiteName   String
+  blackName   String
+  mode        String   @default("ONLINE")
+  result      String?
+  pgn         String   @default("")
+  finalFen    String?
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+  white       User?    @relation("WhitePlayer", fields: [whiteId], references: [id], onDelete: SetNull)
+  black       User?    @relation("BlackPlayer", fields: [blackId], references: [id], onDelete: SetNull)
+
+  @@index([startedAt])
+}
+
+model CustomPiece {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  symbol      String
+  color       String   @default("both")
+  rules       Json
+  description String   @default("")
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CustomBoard {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  rows      Int      @default(8)
+  columns   Int      @default(8)
+  layout    Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
